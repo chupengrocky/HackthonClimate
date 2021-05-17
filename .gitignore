@@ -130,3 +130,6 @@ dmypy.json
 
 # Dataset source
 data_source/
+
+# Vscode
+.vscode/
