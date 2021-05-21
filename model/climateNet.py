@@ -20,7 +20,7 @@ class ClimateNet(torch.nn.Module):
         x = torch.relu(self.fc1(x))
         # x = torch.relu(self.fc2(x))
         # x = torch.sigmoid(self.fc3(x))
-        x_class = torch.sigmoid(self.fc3(x))
+        x_class = self.fc3(x)
         x_reg = self.fc4(x)
         
    
