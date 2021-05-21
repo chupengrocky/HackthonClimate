@@ -12,7 +12,7 @@ class ClusterGenerator:
         self.oriData = None
 
         self.meanShiftData = None
-        self.uniformData = None
+        self.sampleData = None
 
     def dataMap(self):
         None
@@ -24,14 +24,14 @@ class ClusterGenerator:
 
         # Make a copy of outPut data 
         self.meanShiftData = self.oriData.copy()
-        self.uniformData = self.oriData.copy()
+        self.sampleData = self.oriData.copy()
 
         self.data_np = f_dataf.to_numpy(dtype="float32")        
         self.location_data = self.data_np[:,1:3]
         print(self.location_data.shape)
         return None
 
-    def saveCluster(self):
+    def saveClusterFig(self):
         plt.figure(figsize=(8, 8))
         scatter1 = plt.scatter(x=self.location_data[:, 0], y=self.location_data[:, 1], s=50, c=self.classifications)
         print(self.location_data.shape)
@@ -43,10 +43,10 @@ class ClusterGenerator:
         plt.ylim([235,246])
         plt.savefig("fig/{}_cluster.png".format(self.num))
         
-    def saveSingle(self,indx):
+    def saveSingleFig(self,indx):
         plt.figure(figsize=(8, 8))
         la,lo = self.centers[indx]
-        points = self.uniformData[self.uniformData["model_{}".format(indx)]==1].to_numpy(dtype="float32")
+        points = self.sampleData[self.sampleData["model_{}".format(indx)]==1].to_numpy(dtype="float32")
         plt.scatter(x=points[:, 1], y=points[:, 2], s=50,c=['red'])
         scatter2 =plt.scatter(x=self.centers[:, 0], y=self.centers[:, 1], s=500, c=range(len(self.centers)), marker='^',)
         plt.title("Model_{} decay:{}".format(indx,self.decay))
@@ -102,8 +102,11 @@ class ClusterGenerator:
         
         self.classifications = classifications
         self.centers = centers
-        self.meanShiftData['cluster'] = classifications
-        self.saveCluster()
+        for i in range(len(centers)):
+            col = np.zeros(len(classifications))
+            self.meanShiftData['model_{}'.format(i)]=(col[:]==i).astype('int')
+#         self.meanShiftData['cluster'] = classifications
+        self.saveClusterFig()
 
 
 
@@ -129,8 +132,8 @@ class ClusterGenerator:
             model_mask = np.zeros(probability.shape[0])
             model_mask[model_selection] = 1
             print(sum(model_mask))
-            self.uniformData['model_{}'.format(indx)] = model_mask
+            self.sampleData['model_{}'.format(indx)] = model_mask
             print("model_{} select {} sample".format(indx,size))
-            self.saveSingle(indx)
+            self.saveSingleFig(indx)
 
 

@@ -7,39 +7,46 @@ import numpy as np
 from sklearn import metrics
 
 # Global Variable
-MODEL_NUM = 2
+MODEL_NUM = 4
 SPLIT_THRES = 0.7
 LABEL_THRES = 0.5
-APHI = 0.5
-BETA = 0.5
+APHI = 0.3
+BETA = 0.7
+LR = 0.001
 
+## helper Function for calculate acc
+def sigmoid(x):
+    return 1 / (1 + np.exp(x))
 
 cg = ClusterGenerator(MODEL_NUM,"data_source/present_data.csv")
 cg.loadData()
 cg.kmeans()
+cg.randomSample()
 # cg.showGrid() #Used for visualize the data cluster 
 
 
 
-data_np = cg.meanShiftData.to_numpy(dtype="float32")
-# print(data_np.shape)
+# data_frame = cg.meanShiftData
+data_frame = cg.sampleData
+print("Training dataFrame", data_frame.shape)
 net_list = []
-for idx in range(cg.centers.shape[0]):
+for idx in range(MODEL_NUM):
 
     print("Working on model: ", idx)
-    train_dataset = dataset(data_np, idx)
-    val_dataset = dataset(data_np, idx, mode='val')
+    train_dataset = dataset(data_frame, idx)
+    val_dataset = dataset(data_frame, idx, mode='val')
 
-    trainloader = DataLoader(train_dataset, batch_size=16, shuffle=True)
-    valloader = DataLoader(val_dataset, batch_size=16, shuffle=False)
+    trainloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    valloader = DataLoader(val_dataset, batch_size=32, shuffle=False)
     print(len(train_dataset))
 
 
     net = ClimateNet(train_dataset.get_feature_len())
-    optimizer = torch.optim.SGD(net.parameters(), lr=0.001)
+    optimizer = torch.optim.SGD(net.parameters(), lr=LR)
     reg_loss_func = torch.nn.MSELoss()    
     train_cls_loss_func = torch.nn.BCEWithLogitsLoss(weight=train_dataset.get_cls_weight())  # the target label is NOT an one-hotted
-    val_cls_loss_func = torch.nn.BCEWithLogitsLoss(weight=val_dataset.get_cls_weight())  # the target label is NOT an one-hotted
+#     train_cls_loss_func = torch.nn.BCEWithLogitsLoss()
+    val_cls_loss_func = torch.nn.BCEWithLogitsLoss()  # the target label is NOT an one-hotted
 
     
 
@@ -49,7 +56,7 @@ for idx in range(cg.centers.shape[0]):
     cls_val_losses = []
     cls_val_accur = []
 
-    reg_val_losses = []
+    reg_train_losses = []
     reg_val_losses = []
 
     total_losses = []
@@ -68,9 +75,12 @@ for idx in range(cg.centers.shape[0]):
             #class accuracy
             
             cls_train_predicted, reg_train_predicted = net(train_dataset.get_x())
-            cls_train_acc = ((cls_train_predicted.reshape(-1).detach().numpy()>LABEL_THRES) == train_dataset.get_y_cls().numpy()).mean()
-            # cls_train_acc = metrics.balanced_accuracy_score((cls_train_predicted.reshape(-1).detach().numpy()>=LABEL_THRES).astype(float), train_dataset.get_y_cls().numpy())
-            #backprop
+#             outputs = torch.sigmoid(cls_train_predicted).cpu()
+            
+#             print((sigmoid(cls_train_predicted.reshape(-1).detach().numpy()))>=LABEL_THRES)
+            cls_train_acc = (sigmoid(cls_train_predicted.reshape(-1).detach().numpy()).round()== train_dataset.get_y_cls().numpy()).mean()
+#             cls_train_acc = metrics.balanced_accuracy_score((torch.sigmoid(cls_train_predicted).reshape(-1).detach().numpy()).round(), train_dataset.get_y_cls().numpy())
+
 
 
         for j_v,(x_v, y_v_reg, y_v_cls) in enumerate(valloader):
@@ -83,15 +93,21 @@ for idx in range(cg.centers.shape[0]):
             #class accuracy
 
             cls_val_predicted, reg_val_predicted = net(val_dataset.get_x())
-            cls_val_acc = ((cls_val_predicted.reshape(-1).detach().numpy()>=LABEL_THRES).astype(float) == val_dataset.get_y_cls().numpy()).mean()
+            cls_val_acc = (sigmoid(cls_val_predicted.reshape(-1).detach().numpy()).round() == val_dataset.get_y_cls().numpy()).mean()
 
         
         cls_train_losses.append(cls_train_loss.data)
         cls_train_accur.append(cls_train_acc)
         cls_val_losses.append(cls_val_loss.data)
         cls_val_accur.append(cls_val_acc)
+        reg_train_losses.append(reg_train_loss.data)
+        reg_val_losses.append(reg_val_loss.data)
+        
+        
         if i%20 == 0:
-            print("epoch {:<5} cls_train_loss:{:.5f} cls_val_loss: {:.5f} train_accuracy:{:.5f} val_accuracy: {:.5f}".format(i,cls_train_loss,cls_val_loss,cls_train_acc,cls_val_acc))
+            print("Epoch:",i)
+            print("cls_train_loss: {:.5f} cls_val_loss: {:.5f} train_acc: {:.5f} val_acc: {:.5f}".format(cls_train_loss,cls_val_loss,cls_train_acc,cls_val_acc))
+            print("reg_train_loss:{:.5f} reg_val_loss: {:.5f}".format(reg_train_loss,reg_val_loss))
 
         optimizer.zero_grad()
         total_loss.backward()
@@ -101,7 +117,7 @@ for idx in range(cg.centers.shape[0]):
 
 for i in range(len(net_list)):
     cls_train_losses = net_list[i][1][0]
-    plt.plot(cls_train_losses,label="Net:{},data#:{}".format(i,data_np[data_np[:,-1]==i].shape[0]))
+    plt.plot(cls_train_losses,label="Net:{},data#:{}".format(i,len(data_frame)))
     # plt.plot(cls_val_losses,label='val')
     plt.title('Loss vs Epochs')
     plt.xlabel('Epochs')
@@ -112,7 +128,7 @@ for i in range(len(net_list)):
 plt.clf()    
 for i in range(len(net_list)):
     cls_train_accur = net_list[i][1][1]
-    plt.plot(cls_train_accur,label="Net:{},data#:{}".format(i,data_np[data_np[:,-1]==i].shape[0]))
+    plt.plot(cls_train_accur,label="Net:{},data#:{}".format(i,len(data_frame)))
     # plt.plot(cls_val_losses,label='val')
     plt.title('accuracy vs Epochs')
     plt.xlabel('Epochs')
