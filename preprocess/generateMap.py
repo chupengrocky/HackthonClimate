@@ -39,8 +39,8 @@ class ClusterGenerator:
         plt.legend(*scatter1.legend_elements(),
                     loc="upper left", title="Ranking")
 
-        plt.xlim([32, 50])
-        plt.ylim([235,246])
+        plt.xlim([30, 45])
+        plt.ylim([235.5,246])
         plt.savefig("fig/{}_cluster.png".format(self.num))
         
     def saveSingleFig(self,indx):
@@ -53,7 +53,7 @@ class ClusterGenerator:
         plt.legend(*scatter2.legend_elements(),
                     loc="upper left", title="Ranking")
 
-        plt.xlim([25, 50])
+        plt.xlim([30, 45])
         plt.ylim([235.5,246])
         plt.savefig("fig/mode_{}_data_distribution.png".format(indx))
     
@@ -104,8 +104,9 @@ class ClusterGenerator:
         self.centers = centers
         for i in range(len(centers)):
             col = np.zeros(len(classifications))
-            self.meanShiftData['model_{}'.format(i)]=(col[:]==i).astype('int')
-#         self.meanShiftData['cluster'] = classifications
+            col[classifications==i]=1
+            self.meanShiftData['model_{}'.format(i)]=col
+        self.meanShiftData.to_csv('temp/meanShiftData.csv')
         self.saveClusterFig()
 
 
@@ -134,6 +135,7 @@ class ClusterGenerator:
             print(sum(model_mask))
             self.sampleData['model_{}'.format(indx)] = model_mask
             print("model_{} select {} sample".format(indx,size))
+            
             self.saveSingleFig(indx)
-
+        self.sampleData.to_csv('temp/sampleData.csv')
 
