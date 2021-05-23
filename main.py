@@ -7,18 +7,12 @@ import torch
 import numpy as np
 import pandas as pd
 from sklearn import metrics
+import os 
 
-# Global Variable
-# EPOCH = 200
-# SUBDATA_SIZE = 200
-# MODEL_NUM = 10
-# SPLIT_THRES = 0.8
-# APHI = 0.5
-# LR = 0.005
-
-## helper Function for calculate acc
-# def sigmoid(x):
-#     return 1 / (1 + np.exp(-x))
+if not os.path.isdir('res/'):
+    os.mkdir('res/')
+if not os.path.isdir('fig/'):
+    os.mkdir('fig/')
 
 
 ## Select cluster process 
@@ -32,10 +26,14 @@ def run(EPOCH,SUBDATA_SIZE,MODEL_NUM,SPLIT_THRES,LR):
     # cg.showGrid() #Used for visualize the data cluster 
 
 
-    # return 
-    # 
-    data_frame = cg.meanShiftData
-    # data_frame = cg.sampleData
+
+    # Uncommend this line if using the localize Sampling 
+    # data_frame = cg.meanShiftData
+     # Uncommend this line if using the Random Sampling 
+    data_frame = cg.sampleData
+
+
+
     print("Training dataFrame", data_frame.shape)
     train_frame = data_frame.sample(frac = SPLIT_THRES)
     val_frame = data_frame.drop(train_frame.index)
@@ -172,7 +170,9 @@ def run(EPOCH,SUBDATA_SIZE,MODEL_NUM,SPLIT_THRES,LR):
         del net
         del total_loss,cls_train_loss,reg_train_loss,cls_val_loss,
         del optimizer
+    
 
+    ## save the loss in each epoch, commend this part when doing grid search
     plt.clf() 
     for i in range(len(stats_list)):
         cls_train_losses_score = stats_list[i][1][0]
