@@ -1,3 +1,4 @@
+from ast import Str
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -33,29 +34,29 @@ class ClusterGenerator:
 
     def saveClusterFig(self):
         plt.figure(figsize=(8, 8))
-        scatter1 = plt.scatter(x=self.location_data[:, 0], y=self.location_data[:, 1], s=50, c=self.classifications)
+        scatter1 = plt.scatter(y=self.location_data[:, 0], x=self.location_data[:, 1], s=50, c=self.classifications)
         print(self.location_data.shape)
-        plt.scatter(x=self.centers[:, 0], y=self.centers[:, 1], s=500, c='k', marker='^')
+        plt.scatter(y=self.centers[:, 0], x=self.centers[:, 1], s=500, c='k', marker='^')
         plt.legend(*scatter1.legend_elements(),
-                    loc="upper left", title="Ranking")
+                    loc="upper left", title="Cluster")
 
-        plt.xlim([30, 45])
-        plt.ylim([235.5,246])
+        plt.ylim([30, 45])
+        plt.xlim([235.5,246])
         plt.savefig("fig/{}_cluster.png".format(self.num))
         
     def saveSingleFig(self,indx):
         plt.figure(figsize=(8, 8))
         la,lo = self.centers[indx]
         points = self.sampleData[self.sampleData["model_{}".format(indx)]==1].to_numpy(dtype="float32")
-        plt.scatter(x=points[:, 1], y=points[:, 2], s=50,c=['red'])
-        scatter2 =plt.scatter(x=self.centers[:, 0], y=self.centers[:, 1], s=500, c=range(len(self.centers)), marker='^',)
+        scatter2=plt.scatter(y=points[:, 1], x=points[:, 2], s=50,c=len(points)*[indx])
+        plt.scatter(y=self.centers[indx, 0], x=self.centers[indx, 1], s=500, marker='^')
         plt.title("Model_{} decay:{}".format(indx,self.decay))
         plt.legend(*scatter2.legend_elements(),
-                    loc="upper left", title="Ranking")
+                    loc="upper left", title="Veg Type")
 
-        plt.xlim([30, 45])
-        plt.ylim([235.5,246])
-        plt.savefig("fig/mode_{}_data_distribution.png".format(indx))
+        plt.ylim([30, 45])
+        plt.xlim([235.5,246])
+        # plt.savefig("fig/mode_{}_data_distribution.png".format(indx))
     
     def kmeans(self, normalize=False, limit=200):
 
@@ -107,7 +108,7 @@ class ClusterGenerator:
             col[classifications==i]=1
             self.meanShiftData['model_{}'.format(i)]=col
         self.meanShiftData.to_csv('temp/meanShiftData.csv')
-        self.saveClusterFig()
+        # self.saveClusterFig()
 
 
 
@@ -132,10 +133,22 @@ class ClusterGenerator:
 
             model_mask = np.zeros(probability.shape[0])
             model_mask[model_selection] = 1
-            print(sum(model_mask))
+            # print(sum(model_mask))
             self.sampleData['model_{}'.format(indx)] = model_mask
             print("model_{} select {} sample".format(indx,size))
             
-            self.saveSingleFig(indx)
+            # self.saveSingleFig(indx)
         self.sampleData.to_csv('temp/sampleData.csv')
 
+    def generateStack(self):
+        for indx in range(self.num):
+            points = self.sampleData[self.sampleData["model_{}".format(indx)]==1].to_numpy(dtype="float32")
+            plt.scatter(y=points[:, 1], x=points[:, 2], s=10, label = str(indx),alpha=0.4,vmin=0,vmax=9)
+            plt.scatter(y=self.centers[indx, 0], x=self.centers[indx, 1], s=500, marker='^')
+            plt.title("Model_{} decay:{}".format(indx,self.decay))
+            
+
+            plt.ylim([30, 45])
+            plt.xlim([235.5,246])
+        plt.legend()
+        plt.savefig("fig/stack_result.png")
